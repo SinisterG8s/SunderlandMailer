@@ -114,3 +114,68 @@ that folder — you'll have been given these.
 | The app installs but sending fails / can't find the spreadsheet | Do the **Turn on file access** steps above. |
 | It asks for an administrator password | Ask whoever manages your PC, or the person who sent you the files. |
 | Nothing works | Take a screenshot of the error and send it to your contact. |
+
+- - -
+
+<br>
+
+> **⬇️ The rest of this page is for the person who maintains the app — the sales
+> team can stop reading here.**
+
+## Maintainer notes (not for the sales team)
+
+### Signing certificate
+
+The app is signed with a self-signed certificate so Windows will let it
+install. Key file: `windows/SunderlandEmailSender/SunderlandEmailSender_TemporaryKey.pfx`
+(password-less). Public certificate for distribution:
+`windows/SunderlandEmailSender/SunderlandEmailSender.cer`.
+
+| Detail | Value |
+|--------|-------|
+| Subject / Publisher | `CN=gerard` (must match `Publisher` in `Package.appxmanifest`) |
+| Issued | 9 June 2026 |
+| **Expires** | **9 June 2031** |
+
+**What expiry actually breaks:** Windows validates the signature only at
+**install** time, not on every launch. So PCs that already have the app keep
+working after the cert expires — *but* you won't be able to install on a new/
+replacement PC or push an update until you generate a fresh cert.
+
+### Renewing the certificate (do this before June 2031)
+
+Run from the repo root in PowerShell. Keep the subject `CN=gerard` so Windows
+treats it as the same app:
+
+```powershell
+$pfx = "windows\SunderlandEmailSender\SunderlandEmailSender_TemporaryKey.pfx"
+$cer = "windows\SunderlandEmailSender\SunderlandEmailSender.cer"
+
+$cert = New-SelfSignedCertificate -Type Custom -Subject "CN=gerard" `
+  -KeyUsage DigitalSignature -KeyExportPolicy Exportable `
+  -FriendlyName "Sunderland Email Sender" `
+  -CertStoreLocation "Cert:\CurrentUser\My" `
+  -NotAfter (Get-Date).AddYears(5) `
+  -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
+
+[System.IO.File]::WriteAllBytes((Resolve-Path $pfx).Path, `
+  $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Pfx))
+Export-Certificate -Cert ("Cert:\CurrentUser\My\" + $cert.Thumbprint) -FilePath $cer
+```
+
+Then rebuild the package (Release / x64), and hand out the new `.msix` plus the
+new `.cer`. The team trusts the new `.cer` once, exactly like the first install.
+
+> If the manifest `Publisher` and the cert `Subject` ever differ, signing or
+> install will fail — they must match character-for-character.
+
+### Avoiding this chore (and the "Run anyway" popup)
+
+A real code-signing certificate removes both the yearly renewal pain and the
+SmartScreen warning the team currently clicks through:
+
+- **Azure Trusted Signing** — ~$10/month, simplest modern option.
+- **Standard code-signing cert** (Sectigo / DigiCert) — ~£150–250/year.
+
+With either, timestamp the signature so already-signed packages keep installing
+even after the cert expires.

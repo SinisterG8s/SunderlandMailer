@@ -1,0 +1,116 @@
+# Installing the Sunderland Email Sender
+
+This guide walks you through installing the app on your Windows PC. It takes
+about 5 minutes and you only do it **once**. No technical knowledge needed —
+just follow the steps in order.
+
+If you get stuck at any point, take a screenshot and send it to whoever gave
+you these files.
+
+- - -
+
+## What you should have
+
+You'll have been given a folder containing **three files**. The names may have
+a version number in them, but they look like this:
+
+| File | Looks like | What it is |
+| ---- | ---------- | ---------- |
+| 📦 The app | `SunderlandEmailSender_1.0.0.0_x64.msix` | The program itself |
+| 📜 The certificate | `SunderlandEmailSender_1.0.0.0_x64.cer` | A one-time "trust" file Windows needs |
+| ⚙️ The installer helper | `Add-AppDevPackage.ps1` | Does the install for you automatically |
+
+> 💡 **Keep all three files together in the same folder.** The helper needs the
+> other two next to it. The easiest path is the **automatic** install below.
+
+- - -
+
+## The easy way (recommended)
+
+This uses the helper file to install everything for you.
+
+1. Find the file called <b>`Add-AppDevPackage.ps1`</b> (the ⚙️ one).
+2. **Right-click** it and choose **"Run with PowerShell"**.
+3. A blue window will open and ask some questions. **Say yes / press Enter** to
+each one — it may ask permission to install the trust certificate, then to
+install the app.
+4. When you see the message that installation **succeeded**, you're done.
+You can close the window.
+
+> ⚠️ **If Windows shows a blue "Windows protected your PC" box:** click
+> **"More info"**, then **"Run anyway"**. This is normal for company apps that
+> aren't sold in the Microsoft Store.
+
+> ⚠️ **If right-click doesn't show "Run with PowerShell":** use **The manual**
+> way below instead — it does exactly the same thing.
+
+That's it. Skip ahead to **Turn on file access** below.
+
+- - -
+
+## The manual way (only if the easy way didn't work)
+
+You'll do two small steps: trust the certificate, then install the app.
+
+### Step 1 — Trust the certificate (one time)
+
+1. Double-click the <b>`.cer`</b> file (the 📜 one).
+2. Click **"Install Certificate…"**.
+3. Choose **"Local Machine"**, then click **Next**.
+(If Windows asks for an admin password, enter it or ask whoever set up your PC.)
+4. Choose **"Place all certificates in the following store"**, click **Browse**,
+and select **"Trusted People"**. Click **OK**, then **Next**, then **Finish**.
+5. You should see **"The import was successful."** Click **OK**.
+
+### Step 2 — Install the app
+
+1. Double-click the <b>`.msix`</b> file (the 📦 one).
+2. Click the **Install** button.
+3. When it finishes, the app may open automatically.
+
+- - -
+
+## Turn on file access (important — do this once)
+
+The app needs permission to read your recipients spreadsheet and save its
+progress. Without this, sending will fail.
+
+1. Click the Windows **Start** button and type **"File system privacy"**, then
+open **"File system privacy settings"**.
+2. Make sure **"File system access"** is turned **On**.
+3. Scroll down to the list of apps and turn **On** the switch next to
+**Sunderland Email Sender**.
+
+- - -
+
+## Opening the app
+
+From now on, just click the Windows **Start** button, type **"Sunderland"**,
+and click the app. You can also right-click it in the Start menu and choose
+**"Pin to taskbar"** so it's always one click away.
+
+You do **not** need any of the three install files after this — you can delete
+them or keep them somewhere safe in case you ever reinstall.
+
+- - -
+
+## First time you use it
+
+1. Click **+ New profile**, give it your name, and a folder will open.
+2. Drop your <b>`credentials.json`</b> (and optional <b>`signature.html`</b>) into
+that folder — you'll have been given these.
+3. Pick your profile in the app and sign in with Google when prompted.
+
+(Whoever set this up can help you with the Google sign-in the first time.)
+
+- - -
+
+## Troubleshooting
+
+| Problem | Fix |
+| ------- | --- |
+| "Run with PowerShell" is missing when I right-click | Use **The manual way** above. |
+| "Windows protected your PC" popup | Click **More info → Run anyway**. |
+| The app installs but sending fails / can't find the spreadsheet | Do the **Turn on file access** steps above. |
+| It asks for an administrator password | Ask whoever manages your PC, or the person who sent you the files. |
+| Nothing works | Take a screenshot of the error and send it to your contact. |

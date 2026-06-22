@@ -99,7 +99,35 @@ them or keep them somewhere safe in case you ever reinstall.
 1. Click **+ New profile**, give it your name, and a folder will open.
 2. Drop your <b>`credentials.json`</b> (and optional <b>`signature.html`</b>) into
 that folder — you'll have been given these.
-3. Pick your profile in the app and sign in with Google when prompted.
+3. Pick your profile in the app. The first time, it asks you to sign in with
+Google — follow the steps just below.
+
+### Signing in with Google (first run, then rarely again)
+
+When you sign in, the app opens your web browser and then shows a **"Sign in
+with Google"** box with a place to paste an address. Here's the whole dance —
+it looks odd in the middle, but that's normal:
+
+1. In the **browser** window that opened, sign in to your Google account and
+click **Allow / Continue** to approve access.
+2. The browser then tries to open a page that **"can't be reached"** at an
+address starting with **`127.0.0.1`**. **This is expected — it is not an
+error.** Nothing is supposed to load there.
+3. Click into the browser's **address bar**, select the **whole** address
+(the one starting with `127.0.0.1`), and copy it.
+4. Switch back to the app and **paste** that address into the box, then click
+**Submit**.
+
+> 💡 **Wait for the `127.0.0.1` page before copying.** If you copy while you're
+> still on the Google sign-in page, it won't work — the address you need only
+> appears *after* you click Allow / Continue.
+
+> 💡 If the browser window closed or you lost it, click **Re-open browser** in
+> the app to start the sign-in again.
+
+You normally only do this **once per profile**. The app remembers you and signs
+you in automatically afterwards. (You'd only sign in again if you click
+**Sign out Google**, or after a long time away.)
 
 (Whoever set this up can help you with the Google sign-in the first time.)
 
@@ -112,17 +140,45 @@ that folder — you'll have been given these.
 | "Run with PowerShell" is missing when I right-click | Use **The manual way** above. |
 | "Windows protected your PC" popup | Click **More info → Run anyway**. |
 | The app installs but sending fails / can't find the spreadsheet | Do the **Turn on file access** steps above. |
+| After Google sign-in the browser shows "can't reach this page" at 127.0.0.1 | That's expected, not an error. Copy the **whole** `127.0.0.1` address from the browser's address bar and paste it into the app, then click **Submit**. |
+| The app says I pasted the Google sign-in page, not the final address | You copied too early. Finish signing in (click **Allow / Continue**) and wait for the `127.0.0.1` "can't be reached" page, then copy *that* address. |
+| The browser window closed before I finished | Click **Re-open browser** in the app's sign-in box to start again. |
 | It asks for an administrator password | Ask whoever manages your PC, or the person who sent you the files. |
 | Nothing works | Take a screenshot of the error and send it to your contact. |
 
 - - -
 
 <br>
-
-> **⬇️ The rest of this page is for the person who maintains the app — the sales
-> team can stop reading here.**
+<br>
+<br>
+<br>
+> **⬇️ The rest of this page is for the person who maintains the app — the sales**
+> team can stop reading here.
 
 ## Maintainer notes (not for the sales team)
+
+### Google sign-in (loopback redirect + manual paste-back)
+
+Each profile signs in with its own Google OAuth client (`credentials.json`).
+When creating the OAuth client in Google Cloud Console, choose **Desktop app**
+— that's what allows the loopback `http://127.0.0.1` redirect the app uses.
+
+The flow is **loopback redirect with a manual paste-back**: the app opens the
+consent screen with `redirect_uri=http://127.0.0.1:51110`, Google redirects the
+browser to `http://127.0.0.1:51110/?code=…` (which can't load — *nothing is
+listening, by design*), and the user pastes that address back into the app,
+which extracts the `code=` and exchanges it for a token. The token is saved as
+`token.json` in the profile folder and refreshed automatically afterwards.
+
+**Why not auto-catch the redirect?** Google killed the old out-of-band (OOB)
+flow, and a local loopback *listener* can't receive the redirect either: this is
+a packaged UWP AppContainer app and Windows drops inbound loopback to a
+sandboxed app even with a `CheckNetIsolation` exemption. The manual paste is
+JS-only and reliable. The port lives in
+[src/auth/useOAuthFlow.ts](src/auth/useOAuthFlow.ts) (`LOOPBACK_PORT`); the
+`redirect_uri` must be byte-identical between the auth URL and the token
+exchange, so `buildAuthUrl()` in [src/auth/gmailAuth.ts](src/auth/gmailAuth.ts)
+is the single source of truth.
 
 ### Signing certificate
 
@@ -132,7 +188,7 @@ install. Key file: `windows/SunderlandEmailSender/SunderlandEmailSender_Temporar
 `windows/SunderlandEmailSender/SunderlandEmailSender.cer`.
 
 | Detail | Value |
-|--------|-------|
+| ------ | ----- |
 | Subject / Publisher | `CN=gerard` (must match `Publisher` in `Package.appxmanifest`) |
 | Issued | 9 June 2026 |
 | **Expires** | **9 June 2031** |
@@ -147,7 +203,7 @@ replacement PC or push an update until you generate a fresh cert.
 Run from the repo root in PowerShell. Keep the subject `CN=gerard` so Windows
 treats it as the same app:
 
-```powershell
+``` powershell
 $pfx = "windows\SunderlandEmailSender\SunderlandEmailSender_TemporaryKey.pfx"
 $cer = "windows\SunderlandEmailSender\SunderlandEmailSender.cer"
 
@@ -174,8 +230,8 @@ new `.cer`. The team trusts the new `.cer` once, exactly like the first install.
 A real code-signing certificate removes both the yearly renewal pain and the
 SmartScreen warning the team currently clicks through:
 
-- **Azure Trusted Signing** — ~$10/month, simplest modern option.
-- **Standard code-signing cert** (Sectigo / DigiCert) — ~£150–250/year.
+* **Azure Trusted Signing** — \~$10/month, simplest modern option.
+* **Standard code-signing cert** (Sectigo / DigiCert) — \~£150–250/year.
 
 With either, timestamp the signature so already-signed packages keep installing
 even after the cert expires.
